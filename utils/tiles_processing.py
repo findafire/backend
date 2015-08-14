@@ -39,7 +39,7 @@ def simplify_raster_fire_file(input_raster_hdj_file, output_raster_filename, ban
 
 
 def merge_to_vrt(output_vrt_filename, input_files):
-    files_to_merge = reduce(lambda acc, f: f + ' ' + acc, input_files)
-    com = 'gdalbuildvrt %s %s' % (files_to_merge, output_vrt_filename)
+    files_to_merge = reduce(lambda acc, f: f + ' ' + acc, input_files, '')
+    com = 'gdalbuildvrt %s %s' % (output_vrt_filename, files_to_merge)
     p = subprocess.Popen(com, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     p.wait()
