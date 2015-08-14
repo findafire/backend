@@ -3,7 +3,7 @@ from utils.tiles_lookup import *
 import urllib
 import os.path
 from multiprocessing import Pool
-from utils.tiles_processing import simplify_raster_fire_file
+from utils.tiles_processing import simplify_raster_fire_file, merge_to_vrt
 
 FIRE_DIRECTORY_URL = 'http://e4ftl01.cr.usgs.gov/MOLT/MOD14A1.005/'
 TILE_TMP_DIR = 'tmp/'
@@ -41,7 +41,8 @@ def fetch_last_added_data():
     fetched_files = filter(lambda f: f is None,
                            p.map(process_one_fire_tile, get_last_added_tile_urls().items()))
 
-
+    intermediate_vrt_filename = '%s.vrt' + str(datetime.date.today())
+    merge_to_vrt(intermediate_vrt_filename, fetched_files)
 
 
 if __name__ == '__main__':
