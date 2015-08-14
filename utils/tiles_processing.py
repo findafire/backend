@@ -4,9 +4,13 @@ import subprocess
 from osgeo.gdalconst import *
 
 
-def simplify_raster_fire_file(input_raster_filename, output_raster_filename, band_count=8, fire_val_threshold=7):
+def wrap_hdf_filename(filename_to_wrap):
+    return 'HDF4_EOS:EOS_GRID:"%s":MODIS_Grid_Daily_Fire:FireMask' % filename_to_wrap
+
+
+def simplify_raster_fire_file(input_raster_hdj_file, output_raster_filename, band_count=8, fire_val_threshold=7):
     driver = gdal.GetDriverByName('GTiff')
-    source_ds = gdal.Open(input_raster_filename, GA_ReadOnly)
+    source_ds = gdal.Open(wrap_hdf_filename(input_raster_hdj_file), GA_ReadOnly)
     dest_ds = driver.Create(
         output_raster_filename,
         source_ds.RasterXSize,
