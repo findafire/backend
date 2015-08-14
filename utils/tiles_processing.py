@@ -1,5 +1,6 @@
 import gdal
 import numpy
+import subprocess
 from osgeo.gdalconst import *
 
 
@@ -33,6 +34,8 @@ def simplify_raster_fire_file(input_raster_filename, output_raster_filename, ban
     dest_ds.FlushCache()
 
 
-def merge_to_vrt(hdf_files):
-    pass
-
+def merge_to_vrt(output_vrt_filename, input_files):
+    files_to_merge = reduce(lambda acc, f: f + ' ' + acc, input_files)
+    com = 'gdalbuildvrt %s %s' % (files_to_merge, output_vrt_filename)
+    p = subprocess.Popen(com, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    p.wait()
