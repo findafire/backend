@@ -5,7 +5,7 @@ from psycopg2.extras import DictCursor
 import datetime
 import json
 
-app = Flask('findafire')
+app = Flask(__name__)
 
 
 def parse_date_param_from_request(request, param_name, std=None):
