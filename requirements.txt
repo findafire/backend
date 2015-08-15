@@ -1,3 +1,5 @@
+flask
 numpy
 gdal
+psycopg2
 lxml (3.4.4)
