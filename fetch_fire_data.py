@@ -41,7 +41,7 @@ def fetch_last_added_data():
     fetched_files = filter(lambda f: f is None,
                            p.map(process_one_fire_tile, get_last_added_tile_urls().items()))
 
-    intermediate_vrt_filename = '%s.vrt' + str(datetime.date.today())
+    intermediate_vrt_filename = '%s.vrt' % str(datetime.date.today())
     merge_to_vrt(intermediate_vrt_filename, fetched_files)
 
 

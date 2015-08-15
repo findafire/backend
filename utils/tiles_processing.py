@@ -27,8 +27,8 @@ def simplify_raster_fire_file(input_raster_hdj_file, output_raster_filename, ban
         band_data = source_band.ReadAsArray()
 
         bin_fire_data = numpy.zeros(shape=(len(band_data), len(band_data[0])))
-        for i in range(len(band_data)):
-            for j in range(len(band_data[i])):
+        for i in xrange(len(band_data)):
+            for j in xrange(len(band_data[i])):
                 if band_data[i][j] >= fire_val_threshold:
                     bin_fire_data[i][j] = 1
 
