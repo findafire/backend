@@ -37,7 +37,7 @@ def insert_fire_polygons(input_filename):
     with get_fire_db_connection() as conn:
         with conn.cursor() as cur:
             #  reading all geometries
-            source_feature = source_layer.GetFeature(0)
+            source_feature = source_layer.GetNextFeature()
             while source_feature:
                 geom = source_feature.GetGeometryRef()
                 geom_center_point = geom.Centroid().ExportToWkt()
