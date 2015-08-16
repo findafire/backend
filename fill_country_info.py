@@ -12,11 +12,12 @@ def insert_country(cur, country_feature):
     feature_items = country_feature.items()
     country = dict(
         iso2=feature_items['ISO2'],
-        name=feature_items['NAME'].replace("'", "''"),
+        name=feature_items['NAME'],
         shape=country_feature.GetGeometryRef().ExportToWkt()
     )
-    cur.execute("""INSERT INTO countries (iso_2_chars, name, shape)
-                   VALUES ('%(iso2)s', '%(name)s', ST_Multi(ST_GeomFromText('%(shape)s')))""" % country)
+    insert_query = """INSERT INTO countries (iso_2_chars, name, shape)
+                    VALUES (%(iso2)s, %(name)s, ST_Multi(ST_GeomFromText(%(shape)s)))"""
+    cur.execute(insert_query, country)
 
 
 # Dataset from http://thematicmapping.org/downloads/world_borders.php is expected
@@ -51,8 +52,11 @@ if __name__ == '__main__':
         description='Inserts countries data into findafire db.'
     )
     args_parser.add_argument(
-        'data_source',
+        '-sl', '--shape-load',
+        action='store',
         metavar='shp-file',
+        default='',
+        dest='data_source',
         type=str,
         help='Shape file with countries.'
     )
@@ -65,4 +69,5 @@ if __name__ == '__main__':
     args = args_parser.parse_args(sys.argv[1:])
     if args.delete:
         clear_country_table()
-    fill_country_table(args.data_source)
+    if args.data_source:
+        fill_country_table(args.data_source)
