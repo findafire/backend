@@ -4,6 +4,8 @@ import ogr
 import psycopg2
 import re
 
+from psycopg2.extras import DictCursor
+
 DB_HOST = 'api.findafire.org'
 DB_NAME = 'findafire'
 
@@ -62,3 +64,23 @@ def insert_fire_polygons(input_filename):
 
     source_layer = None
     source_ds.Destroy()
+
+
+def select_fires(from_date, to_date, country=None):
+    with get_fire_db_connection() as conn:
+        with conn.cursor(cursor_factory=DictCursor) as cur:
+            data = dict(from_date=from_date, to_date=to_date)
+            if country:
+                sql_query = '''SELECT id, date_of_fire, geojson, area, danger_level
+                           FROM fire_places
+                           WHERE (date_of_fire BETWEEN %(from_date)s AND %(to_date)s)
+                           AND ST_Intersects((SELECT shape FROM countries WHERE iso_2_chars = %(country)s),
+                                             fire_places.shape)'''
+                data['country'] = country
+            else:
+                sql_query = '''SELECT id, date_of_fire, geojson, area, danger_level
+                           FROM fire_places
+                           WHERE date_of_fire BETWEEN %(from_date)s AND %(to_date)s '''
+
+            cur.execute(sql_query, data)
+            return cur.fetchall()

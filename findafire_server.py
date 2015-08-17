@@ -1,7 +1,7 @@
 from flask import Flask, request
 from werkzeug.exceptions import BadRequestKeyError
-from utils.fire_db_access import get_fire_db_connection
-from psycopg2.extras import DictCursor
+from utils.fire_db_access import select_fires
+
 import datetime
 import json
 
@@ -17,6 +17,11 @@ def parse_date_param_from_request(request, param_name, std=None):
         else:
             raise Exception('Date can not be parsed from request param %s' % param_name)
     return date
+
+def param_value_or_none(request, param_name):
+    if param_name in request.args:
+        return request.args[param_name]
+    return None
 
 
 class DangerLevel(object):
@@ -35,31 +40,26 @@ class DangerLevel(object):
 def get_fire():
     to_date = parse_date_param_from_request(request, 'to-date', datetime.date.today())
     from_date = parse_date_param_from_request(request, 'from-date', datetime.date.min)
-    country_code = None  # TODO will be available later
+    country_code = param_value_or_none(request, 'country-code')
     fire_places = {}
     number_of_records = 0
 
-    with get_fire_db_connection() as conn:
-        with conn.cursor(cursor_factory=DictCursor) as cur:
-            cur.execute('''SELECT id, date_of_fire, geojson, area, danger_level
-                           FROM fire_places
-                           WHERE date_of_fire BETWEEN '%s' AND '%s' ''' % (from_date, to_date))
-            for fire in cur.fetchall():
-                number_of_records += 1
-                date_of_fire = str(fire['date_of_fire'])
+    for fire in select_fires(from_date=from_date, to_date=to_date, country=country_code):
+        number_of_records += 1
+        date_of_fire = str(fire['date_of_fire'])
 
-                if date_of_fire not in fire_places:
-                    fire_places[date_of_fire] = {}
+        if date_of_fire not in fire_places:
+            fire_places[date_of_fire] = {}
 
-                fire_places[date_of_fire][fire['id']] = {
-                    'type': 'Feature',
-                    'geometry': fire['geojson'],
-                    'properties': {
-                        'id': fire['id'],
-                        'area': fire['area'],
-                        'danger_level': DangerLevel.level_description(fire['danger_level'])
-                    }
-                }
+        fire_places[date_of_fire][fire['id']] = {
+            'type': 'Feature',
+            'geometry': fire['geojson'],
+            'properties': {
+                'id': fire['id'],
+                'area': fire['area'],
+                'danger_level': DangerLevel.level_description(fire['danger_level'])
+            }
+        }
 
     return json.dumps(
         dict(
