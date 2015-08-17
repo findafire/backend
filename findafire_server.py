@@ -1,6 +1,7 @@
 from flask import Flask, request
 from werkzeug.exceptions import BadRequestKeyError
 from utils.fire_db_access import select_fires
+from utils.common import date_from_str
 
 import datetime
 import json
@@ -10,7 +11,7 @@ app = Flask(__name__)
 
 def parse_date_param_from_request(request, param_name, std=None):
     try:
-        date = datetime.datetime.strptime(request.args[param_name], '%Y-%m-%d').date()
+        date = date_from_str(request.args[param_name])
     except (ValueError, BadRequestKeyError):
         if std is not None:
             date = std

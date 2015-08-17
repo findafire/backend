@@ -1,8 +1,10 @@
+import datetime
 import os
 import gdal
 import ogr
+import osr
 import psycopg2
-import re
+
 
 from psycopg2.extras import DictCursor
 
@@ -18,52 +20,58 @@ def get_fire_db_connection():
         password=os.getenv('FINDAFIRE_DB_PASSWORD')
     )
 
-
-def get_date_from_metadata(input_filename, band_number):
-    source_ds = gdal.Open(input_filename)
-    source_metadata = source_ds.GetMetadata()
-    get_date_as_string = source_metadata.get("DAYSOFYEAR")
-    date_list = re.findall(r"\d{4}\W\d{2}\W\d{2}", get_date_as_string)
-    return date_list[band_number - 1]
-
 # TODO only for testing
-DATE = "2015-01-01"
 AREA = 0
 DANGER_LEVEL = 0
 
+OGR_MEMORY_DRIVER = ogr.GetDriverByName("Memory")
 
-def insert_fire_polygons(input_filename):
-    source_ds = ogr.Open(input_filename)
-    source_layer = source_ds.GetLayer()
+MODIS_SIN_PROJECTION_WKT = 'PROJCS["unnamed", GEOGCS["Unknown datum based upon the custom spheroid", DATUM["Not_specified_based_on_custom_spheroid", SPHEROID["Custom spheroid",6371007.181,0]], PRIMEM["Greenwich",0], UNIT["degree",0.0174532925199433]], PROJECTION["Sinusoidal"], PARAMETER["longitude_of_center",0], PARAMETER["false_easting",0], PARAMETER["false_northing",0], UNIT["metre",1, AUTHORITY["EPSG","9001"]]]'
+OSR_MODIS_SIN_PROJECTION_REF = osr.SpatialReference()
+OSR_MODIS_SIN_PROJECTION_REF.ImportFromWkt(MODIS_SIN_PROJECTION_WKT)
+
+
+def insert_fire_polygons(tiff_file, first_band_date, band_number=8):
+    insert_query = """
+      INSERT INTO fire_places (date_of_fire, area, danger_level, center_point, shape, geojson)
+      VALUES (%(date)s, %(area)s, %(danger_level)s, ST_GeomFromText(%(center_point)s),
+              ST_GeomFromText(%(shape)s), %(geojson)s );
+    """
+
+    source_ds = gdal.Open(tiff_file)
+    shape_dataset = OGR_MEMORY_DRIVER.CreateDataSource('shapemask')
 
     with get_fire_db_connection() as conn:
         with conn.cursor() as cur:
-            #  reading all geometries
-            source_feature = source_layer.GetNextFeature()
-            while source_feature:
-                geom = source_feature.GetGeometryRef()
-                geom_center_point = geom.Centroid().ExportToWkt()
-                geom_export_wkt = geom.ExportToWkt()
-                geom_export_json = geom.ExportToJson()
 
-                insert_com = """INSERT INTO fire_places (date_of_fire, area, danger_level, center_point, shape, geojson)
-                                VALUES ('%(date)s', %(area)s, %(danger_level)s, ST_GeomFromText('%(center_point)s'),
-                                        ST_GeomFromText('%(shape)s'), '%(geojson)s' );
-                             """ % dict(
-                    date=DATE,
-                    area=AREA,
-                    danger_level=DANGER_LEVEL,
-                    center_point=geom_center_point,
-                    shape=geom_export_wkt,
-                    geojson=geom_export_json
-                )
+            date_iter = first_band_date
+            for band_index in xrange(1, band_number + 1):
+                shape_layer = shape_dataset.CreateLayer('shapemask', OSR_MODIS_SIN_PROJECTION_REF)
 
-                cur.execute(insert_com)
-                source_feature.Destroy()
-                source_feature = source_layer.GetNextFeature()
+                source_band = source_ds.GetRasterBand(band_index)
+                gdal.Polygonize(source_band, None, shape_layer, -1, [], callback=None)
 
-    source_layer = None
-    source_ds.Destroy()
+                shape_feature = shape_layer.GetNextFeature()
+                while shape_feature:
+                    geom = shape_feature.GetGeometryRef()
+
+                    query_data = dict(
+                        date=date_iter,
+                        area=AREA,
+                        danger_level=DANGER_LEVEL,
+                        center_point=geom.Centroid().ExportToWkt(),
+                        shape=geom.ExportToWkt(),
+                        geojson=geom.ExportToJson()
+                    )
+
+                    cur.execute(insert_query, query_data)
+
+                    shape_feature.Destroy()
+                    shape_feature = shape_layer.GetNextFeature()
+
+                date_iter = date_iter + datetime.timedelta(days=1)
+
+    shape_dataset.Destroy()
 
 
 def select_fires(from_date, to_date, country=None):
