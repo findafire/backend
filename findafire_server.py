@@ -39,9 +39,9 @@ class DangerLevel(object):
 
 @app.route('/v1/fire-places', methods=['GET'])
 def get_fire():
-    to_date = parse_date_param_from_request(request, 'to-date', datetime.date.today())
-    from_date = parse_date_param_from_request(request, 'from-date', datetime.date.min)
-    country_code = param_value_or_none(request, 'country-code')
+    to_date = parse_date_param_from_request(request, 'to_date', datetime.date.today())
+    from_date = parse_date_param_from_request(request, 'from_date', datetime.date.min)
+    country_code = param_value_or_none(request, 'country_code')
     fire_places = {}
     number_of_records = 0
 
