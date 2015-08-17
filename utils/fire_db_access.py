@@ -26,10 +26,17 @@ DANGER_LEVEL = 0
 
 OGR_MEMORY_DRIVER = ogr.GetDriverByName("Memory")
 
+# WGS84 projection reference
+OSR_WGS84_REF = osr.SpatialReference()
+OSR_WGS84_REF.ImportFromEPSG(4326)
+
+# MODIS SINUSOIDAL PROJECTION reference
 MODIS_SIN_PROJECTION_WKT = 'PROJCS["unnamed", GEOGCS["Unknown datum based upon the custom spheroid", DATUM["Not_specified_based_on_custom_spheroid", SPHEROID["Custom spheroid",6371007.181,0]], PRIMEM["Greenwich",0], UNIT["degree",0.0174532925199433]], PROJECTION["Sinusoidal"], PARAMETER["longitude_of_center",0], PARAMETER["false_easting",0], PARAMETER["false_northing",0], UNIT["metre",1, AUTHORITY["EPSG","9001"]]]'
 OSR_MODIS_SIN_PROJECTION_REF = osr.SpatialReference()
 OSR_MODIS_SIN_PROJECTION_REF.ImportFromWkt(MODIS_SIN_PROJECTION_WKT)
 
+# OSR transformation
+MODIS_SIN_TO_WGS84_TRANSFORM = osr.CoordinateTransformation(OSR_MODIS_SIN_PROJECTION_REF, OSR_WGS84_REF)
 
 def insert_fire_polygons(tiff_file, first_band_date, band_number=8):
     insert_query = """
@@ -54,6 +61,7 @@ def insert_fire_polygons(tiff_file, first_band_date, band_number=8):
                 shape_feature = shape_layer.GetNextFeature()
                 while shape_feature:
                     geom = shape_feature.GetGeometryRef()
+                    geom.Transform(MODIS_SIN_TO_WGS84_TRANSFORM)
 
                     query_data = dict(
                         date=date_iter,
