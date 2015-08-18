@@ -87,11 +87,11 @@ def select_fires(from_date, to_date, country=None):
         with conn.cursor(cursor_factory=DictCursor) as cur:
             data = dict(from_date=from_date, to_date=to_date)
             if country:
-                sql_query = '''SELECT id, date_of_fire, geojson, area, danger_level
-                           FROM fire_places
+                sql_query = '''SELECT fire_places.id, fire_places.date_of_fire, fire_places.geojson, fire_places.area, fire_places.danger_level
+                           FROM fire_places, countries
                            WHERE (date_of_fire BETWEEN %(from_date)s AND %(to_date)s)
-                           AND ST_Intersects((SELECT shape FROM countries WHERE iso_2_chars = %(country)s),
-                                             fire_places.shape)'''
+                           AND countries.iso_2_chars = %(country)s
+                           AND fire_places.shape && countries.shape'''
                 data['country'] = country
             else:
                 sql_query = '''SELECT id, date_of_fire, geojson, area, danger_level
