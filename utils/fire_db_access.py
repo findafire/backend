@@ -52,7 +52,7 @@ def insert_fire_polygons(tiff_file, first_band_date, band_number=8):
         with conn.cursor() as cur:
 
             date_iter = first_band_date
-            for band_index in xrange(1, band_number + 1):
+            for band_index in xrange(1, min(band_number, source_ds.RasterCount) + 1):
                 shape_layer = shape_dataset.CreateLayer('shapemask', OSR_MODIS_SIN_PROJECTION_REF)
 
                 source_band = source_ds.GetRasterBand(band_index)

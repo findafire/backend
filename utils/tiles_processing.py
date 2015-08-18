@@ -22,7 +22,7 @@ def simplify_raster_fire_file(input_raster_hdj_file, output_raster_filename, ban
     dest_ds.SetGeoTransform(source_ds.GetGeoTransform())
     dest_ds.SetProjection(source_ds.GetProjection())
 
-    for band_index in xrange(1, band_count + 1):
+    for band_index in xrange(1, min(band_count, source_ds.RasterCount) + 1):
         source_band = source_ds.GetRasterBand(band_index)
         band_data = source_band.ReadAsArray()
 
